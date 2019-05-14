@@ -196,7 +196,7 @@ if ( ! class_exists( 'WPGraphQLGutenbergACF' ) ) {
         }
 
         public function is_field_name_valid($name) {
-            return (empty($name) || is_numeric($name)) === false;
+            return !empty($name) && !is_numeric($name);
         }
 
         protected function get_maybe_union_type($types, $type_name, $resolve_type) {
@@ -453,27 +453,32 @@ if ( ! class_exists( 'WPGraphQLGutenbergACF' ) ) {
 
                     break;
                 case 'repeater':
-                    $config = [
-                        'type' => Type::listOf(Type::nonNull(
-                            $this->get_acf_fields_type(
-                                $acf_field['sub_fields'],
-                                self::format_name($acf_field['name'], $name_base),
-                            )),
-                        ),
-                        'resolve' => $defaultResolver,
-                    ];
+                    $type = $this->get_acf_fields_type(
+                        $acf_field['sub_fields'],
+                        self::format_name($acf_field['name'], $name_base),
+                    );
 
-                    break;
-                case 'group':
-                    if (count($acf_field['sub_fields'])) {
+                    if (isset($type)) {
                         $config = [
-                            'type' => $this->get_acf_fields_type(
-                                $acf_field['sub_fields'],
-                                self::format_name($acf_field['name'], $name_base),
-                            ),
+                            'type' => Type::listOf(Type::nonNull($type)),
                             'resolve' => $defaultResolver,
                         ];
                     }
+
+                    break;
+                case 'group':
+                    $type = $this->get_acf_fields_type(
+                        $acf_field['sub_fields'],
+                        self::format_name($acf_field['name'], $name_base),
+                    );
+
+                    if (isset($type)) {
+                        $config = [
+                            'type' => $type,
+                            'resolve' => $defaultResolver,
+                        ];
+                    }
+
                     break;
                 case 'flexible_content':
                     $types_per_layout = [];
