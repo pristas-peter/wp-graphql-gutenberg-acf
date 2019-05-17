@@ -280,10 +280,24 @@ if ( ! class_exists( 'WPGraphQLGutenbergACF' ) ) {
                 case 'button_group':
                 case 'radio':
                     $multiple = $acf_field['multiple'] ?? false;
-                    $type_name = self::format_name($acf_field['name'], $name_base);
+                    
+                    $name = $acf_field['name'];
+                    $type_name = self::format_name($name, $name_base);
+
+                    $values = array_merge(...array_map(function($choice) use ($name) {
+                        $value = $choice;
+                        $name = $this->is_field_name_valid($value) ? $value : strtoupper($name) . '_' . $value;
+
+                        return [
+                            $name => [
+                                'value' => $value,
+                            ],
+                        ];
+
+                    }, array_keys($acf_field['choices'])));
 
                     register_graphql_enum_type($type_name, [
-                        'values' => array_map('strval', array_keys($acf_field['choices'])), 
+                        'values' => $values, 
                     ]);
 
                     $type = TypeRegistry::get_type($type_name);
