@@ -33,6 +33,7 @@ if ( ! class_exists( 'WPGraphQLGutenbergACF' ) ) {
         private static $datetime_type;
         private static $time_type;
         private static $color_type;
+        private static $link_type;
         
         
         public static function instance() {
@@ -123,7 +124,34 @@ if ( ! class_exists( 'WPGraphQLGutenbergACF' ) ) {
 			}
 
 			return self::$color_type;
-		}
+        }
+        
+        public static function get_link_type() {
+			if ( ! isset( self::$link_type ) ) {
+                $type_name = 'AcfLink';
+
+                register_graphql_object_type($type_name, [
+                    'fields' => function() {
+                        return [
+                            'url' => [
+                                'type' => Type::string(),
+                            ],
+                            'title' => [
+                                'type' => Type::string(),
+                            ],
+                            'target' => [
+                                'type' => Type::string(),
+                            ],
+                        ];
+                    }
+                ]);
+
+                self::$link_type = TypeRegistry::get_type($type_name);
+ 
+			}
+
+			return self::$link_type;
+        }
 
         public static function format_graphql_block_type_acf_name($block_name) {
             return WPGraphQLGutenberg::format_graphql_block_type_name($block_name) . 'Fields';
@@ -319,6 +347,12 @@ if ( ! class_exists( 'WPGraphQLGutenbergACF' ) ) {
                     ];
                     break;
                 case 'link':
+                    $config = [
+                        'type' => self::get_link_type(),
+                        'resolve' => $defaultResolver,
+                    ];
+                    break;
+
                 case 'page_link':
                     $multiple = $acf_field['multiple'] ?? false;
 
