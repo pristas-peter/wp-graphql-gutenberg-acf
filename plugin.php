@@ -27,6 +27,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 if ( ! class_exists( 'WPGraphQLGutenbergACF' ) ) {
     final class WPGraphQLGutenbergACF {
+        private static $block_editor_script_name = 'wp-graphql-gutenberg-acf-script';
+        private static $block_editor_script_file = 'dist/blocks.build.js';
+
         private static $instance;
         private static $google_map_type;
         private static $date_type;
@@ -653,8 +656,19 @@ if ( ! class_exists( 'WPGraphQLGutenbergACF' ) ) {
             }, 10, 2);
 		}
 
+        protected function setup_block_editor() {
+            add_action( 'enqueue_block_editor_assets', function () {
+                wp_enqueue_script(
+                    WPGraphQLGutenbergACF::$block_editor_script_name,
+                    plugins_url(WPGraphQLGutenbergACF::$block_editor_script_file, __FILE__ ),
+                    array( 'wp-blocks', 'wp-i18n', 'wp-element', 'wp-editor', 'wp-api-fetch', 'lodash', 'wp-dom-ready' )
+                );
+            });
+		}
+
         public function setup() {
-			$this->setup_graphql();
+            $this->setup_graphql();
+            $this->setup_block_editor();
         }
     }
 }
