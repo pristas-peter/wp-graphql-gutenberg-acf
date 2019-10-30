@@ -5,7 +5,7 @@
  * Description: Enable acf blocks in WP GraphQL.
  * Author: pristas-peter
  * Author URI:
- * Version: 0.0.1
+ * Version: 0.1.0
  * License: MIT
  * License URI: https://opensource.org/licenses/MIT
  *
@@ -15,7 +15,6 @@ namespace WPGraphQLGutenbergACF;
 
 use WPGraphQLGutenberg\WPGraphQLGutenberg;
 use GraphQL\Type\Definition\Type;
-use WPGraphQL\TypeRegistry;
 use WPGraphQL\Data\DataSource;
 use GraphQL\Type\Definition\CustomScalarType;
 use GraphQL\Executor\Executor;
@@ -35,6 +34,8 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
         private static $time_type;
         private static $color_type;
         private static $link_type;
+        
+        private $type_registry;
 
         public static function instance()
         {
@@ -61,24 +62,22 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
                 };
 
                 register_graphql_object_type($type_name, [
-                    'fields' => function () use (&$float_resolver) {
-                        return [
-                            'address' => [
-                                'type' => Type::string()
-                            ],
-                            'lat' => [
-                                'type' => Type::float(),
-                                'resolve' => $float_resolver
-                            ],
-                            'lng' => [
-                                'type' => Type::float(),
-                                'resolve' => $float_resolver
-                            ]
-                        ];
-                    }
+                    'fields' => [
+                        'address' => [
+                            'type' => Type::string()
+                        ],
+                        'lat' => [
+                            'type' => Type::float(),
+                            'resolve' => $float_resolver
+                        ],
+                        'lng' => [
+                            'type' => Type::float(),
+                            'resolve' => $float_resolver
+                        ]
+                    ]
                 ]);
 
-                self::$google_map_type = TypeRegistry::get_type($type_name);
+                self::$google_map_type = $type_name;
             }
 
             return self::$google_map_type;
@@ -138,22 +137,20 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
                 $type_name = 'AcfLink';
 
                 register_graphql_object_type($type_name, [
-                    'fields' => function () {
-                        return [
-                            'url' => [
-                                'type' => Type::string()
-                            ],
-                            'title' => [
-                                'type' => Type::string()
-                            ],
-                            'target' => [
-                                'type' => Type::string()
-                            ]
-                        ];
-                    }
+                    'fields' => [
+                        'url' => [
+                            'type' => Type::string()
+                        ],
+                        'title' => [
+                            'type' => Type::string()
+                        ],
+                        'target' => [
+                            'type' => Type::string()
+                        ]
+                    ]
                 ]);
 
-                self::$link_type = TypeRegistry::get_type($type_name);
+                self::$link_type = $type_name;
             }
 
             return self::$link_type;
@@ -223,9 +220,7 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
             $types = [];
 
             foreach ($allowed as $post_type) {
-                $types[$post_type] = TypeRegistry::get_type(
-                    get_post_type_object($post_type)->graphql_single_name
-                );
+                $types[$post_type] = get_post_type_object($post_type)->graphql_single_name;
             }
 
             return $types;
@@ -246,9 +241,7 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
             $types = [];
 
             foreach ($allowed as $taxonomy) {
-                $types[$taxonomy] = TypeRegistry::get_type(
-                    get_taxonomy($taxonomy)->graphql_single_name
-                );
+                $types[$taxonomy] = get_taxonomy($taxonomy)->graphql_single_name;
             }
 
             return $types;
@@ -272,10 +265,10 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
                 return $types[0];
             } else {
                 register_graphql_union_type($type_name, [
-                    'types' => $types,
+                    'typeNames' => $types,
                     'resolveType' => $resolve_type
                 ]);
-                return TypeRegistry::get_type($type_name);
+                return $type_name;
             }
         }
 
@@ -322,7 +315,7 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
                 case 'file':
                 case 'image':
                     $config = [
-                        'type' => TypeRegistry::get_type('MediaItem'),
+                        'type' => 'MediaItem',
                         'resolve' => self::generate_resolver(
                             [DataSource::class, 'resolve_post_object'],
                             false
@@ -331,9 +324,7 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
                     break;
                 case 'gallery':
                     $config = [
-                        'type' => Type::listOf(
-                            Type::nonNull(TypeRegistry::get_type('MediaItem'))
-                        ),
+                        'type' => ['list_of' => ['non_null' => 'MediaItem']],
                         'resolve' => self::generate_resolver(
                             [DataSource::class, 'resolve_post_object'],
                             true
@@ -374,7 +365,6 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
                         'values' => $values
                     ]);
 
-                    $type = TypeRegistry::get_type($type_name);
 
                     if ($acf_field['type'] === 'checkbox') {
                         $multiple = true;
@@ -382,8 +372,8 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
 
                     $config = [
                         'type' => $multiple
-                            ? Type::listOf(Type::nonNull($type))
-                            : $type
+                            ? ['list_of' => ['non_null' => $type_name]]
+                            : $type_name
                     ];
                     break;
                 case 'true_false':
@@ -444,7 +434,7 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
 
                     if (isset($type)) {
                         $config = [
-                            'type' => $multiple ? Type::listOf($type) : $type,
+                            'type' => $multiple ? ['list_of' => $type] : $type,
                             'resolve' => self::generate_resolver(function (
                                 $post,
                                 $context
@@ -513,7 +503,7 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
 
                     if (isset($type)) {
                         $config = [
-                            'type' => $multiple ? Type::listOf($type) : $type,
+                            'type' => $multiple ? ['list_of' => $type] : $type,
                             'resolve' => self::generate_resolver(function (
                                 $term,
                                 $context
@@ -562,10 +552,10 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
                     break;
                 case 'user':
                     $multiple = $acf_field['multiple'] ?? false;
-                    $type = TypeRegistry::get_type('user');
+                    $type = 'user';
 
                     $config = [
-                        'type' => $multiple ? Type::listOf($type) : $type,
+                        'type' => $multiple ? ['list_of' => $type] : $type,
                         'resolve' => self::generate_resolver(
                             [DataSource::class, 'resolve_user'],
                             $multiple
@@ -611,7 +601,7 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
 
                     if (isset($type)) {
                         $config = [
-                            'type' => Type::listOf(Type::nonNull($type))
+                            'type' => ['list_of' => ['non_null' => $type]]
                         ];
                     }
 
@@ -671,13 +661,13 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
                             self::format_name($acf_field['name'], $name_base),
                             function (&$value) use (&$types_per_layout) {
                                 return $types_per_layout[
-                                    $value['acf_fc_layout']
+                                    $this->type_registry->get_type($value['acf_fc_layout'])
                                 ];
                             }
                         );
 
                         $config = [
-                            'type' => Type::listOf($type)
+                            'type' => ['list_of' => $type]
                         ];
                     }
 
@@ -728,12 +718,10 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
 
             if (count($fields)) {
                 register_graphql_object_type($name_base, [
-                    'fields' => function () use ($fields) {
-                        return $fields;
-                    }
+                    'fields' => $fields
                 ]);
 
-                return TypeRegistry::get_type($name_base);
+                return $name_base;
             }
 
             return null;
@@ -763,7 +751,7 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
             if (isset($type)) {
                 $fields['acf'] = [
                     'type' => $type,
-                    'resolve' => function ($arr) use ($acf_fields) {
+                    'resolve' => function ($arr) use ($acf_fields, $type_name) {
                         acf_setup_meta(
                             $arr['attributes']['data'],
                             $arr['attributes']['id'],
@@ -772,9 +760,24 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
 
                         $data = array_merge(
                             [],
-                            ...array_map(function ($field) {
+                            ...array_map(function ($field) use ($type_name) {
+                                           /**
+                                * graphql_gutenberg_acf_field_value
+                                * Filters acf field value.
+                                *
+                                * @param mixed     $value             		Value.
+                                * @param array     $field                	Acf field.
+                                * @param string    $type_name               GraphQL type name.
+                                */
+                                $value = apply_filters(
+                                   'graphql_gutenberg_acf_field_value',
+                                   get_field($field['key']),
+                                   $field,
+                                   $type_name
+                               );
+
                                 return [
-                                    $field['name'] => get_field($field['key'])
+                                    $field['name'] => $value
                                 ];
                             }, $acf_fields)
                         );
@@ -791,7 +794,9 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
         {
             add_filter(
                 'graphql_gutenberg_block_type_fields',
-                function ($fields, $block_type) {
+                function ($fields, $block_type, $type_registry) {
+                    $this->type_registry = $type_registry;
+
                     if (substr($block_type['name'], 0, 4) === "acf/") {
                         $acf_fields = $this->get_block_type_acf_fields(
                             $block_type
@@ -802,7 +807,7 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
                     return $fields;
                 },
                 10,
-                2
+                3
             );
         }
 
@@ -813,6 +818,6 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
     }
 }
 
-add_action('init', function () {
+add_action('acf/init', function () {
     WPGraphQLGutenbergACF::instance()->setup();
-});
+}, 100);
