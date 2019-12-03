@@ -220,7 +220,9 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
             $types = [];
 
             foreach ($allowed as $post_type) {
-                $types[$post_type] = get_post_type_object($post_type)->graphql_single_name;
+                // TODO This is a hack that will certainly not work everywhere. Here I think we need the
+				// ->name property from the GraphQL types registry.
+				$types[$post_type] = ucfirst(get_post_type_object($post_type)->graphql_single_name);
             }
 
             return $types;
