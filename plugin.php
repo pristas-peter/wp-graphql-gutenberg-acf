@@ -1,11 +1,12 @@
 <?php
+
 /**
  * Plugin Name: WP GraphQL Gutenberg ACF
  * Plugin URI: https://github.com/pristas-peter/wp-graphql-gutenberg-acf
  * Description: Enable acf blocks in WP GraphQL.
  * Author: pristas-peter
  * Author URI:
- * Version: 0.1.0
+ * Version: 0.1.1
  * License: MIT
  * License URI: https://opensource.org/licenses/MIT
  *
@@ -34,7 +35,7 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
         private static $time_type;
         private static $color_type;
         private static $link_type;
-        
+
         private $type_registry;
 
         public static function instance()
@@ -188,6 +189,10 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
                 }
 
                 if ($multiple) {
+                    if ($value === false) {
+                        return [];
+                    }
+
                     if (is_string($value) && empty($value)) {
                         return null;
                     }
@@ -220,7 +225,7 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
             $types = [];
 
             foreach ($allowed as $post_type) {
-                $types[$post_type] = get_post_type_object($post_type)->graphql_single_name;
+                $types[$post_type] = WPGraphQLGutenberg::instance()->resolve_post_type_graphql_type($post_type);
             }
 
             return $types;
@@ -426,57 +431,57 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
                         array_values($graphql_type_per_post_type),
                         self::format_name($acf_field['name'], $name_base),
                         function (&$value) use (&$graphql_type_per_post_type) {
-                            return $graphql_type_per_post_type[
-                                $value->{'__typename'}
-                            ];
+                            return $graphql_type_per_post_type[$value->{'__typename'}];
                         }
                     );
 
                     if (isset($type)) {
                         $config = [
                             'type' => $multiple ? ['list_of' => $type] : $type,
-                            'resolve' => self::generate_resolver(function (
-                                $post,
-                                $context
-                            ) use ($acf_field) {
-                                $typename = get_post_type($post);
-                                $id = get_post($post)->ID;
+                            'resolve' => self::generate_resolver(
+                                function (
+                                    $post,
+                                    $context
+                                ) use ($acf_field) {
+                                    $typename = get_post_type($post);
+                                    $id = get_post($post)->ID;
 
-                                if (
-                                    !in_array(
-                                        $typename,
-                                        \WPGraphQL::get_allowed_post_types()
-                                    )
-                                ) {
-                                    if (WP_DEBUG) {
-                                        trigger_error(
-                                            'WPGraphQLGutenbergAcf: Field ' .
-                                                $acf_field['key'] .
-                                                ' will not be resolved since post_type ' .
-                                                $typename .
-                                                ' is not shown in GraphQL.',
-                                            E_USER_NOTICE
-                                        );
+                                    if (
+                                        !in_array(
+                                            $typename,
+                                            \WPGraphQL::get_allowed_post_types()
+                                        )
+                                    ) {
+                                        if (WP_DEBUG) {
+                                            trigger_error(
+                                                'WPGraphQLGutenbergAcf: Field ' .
+                                                    $acf_field['key'] .
+                                                    ' will not be resolved since post_type ' .
+                                                    $typename .
+                                                    ' is not shown in GraphQL.',
+                                                E_USER_NOTICE
+                                            );
+                                        }
+
+                                        return null;
                                     }
 
-                                    return null;
-                                }
+                                    $deferred = \WPGraphQL\Data\DataSource::resolve_post_object(
+                                        $id,
+                                        $context
+                                    );
 
-                                $deferred = \WPGraphQL\Data\DataSource::resolve_post_object(
-                                    $id,
-                                    $context
-                                );
+                                    $deferred->then(function (&$value) use (
+                                        $typename
+                                    ) {
+                                        $value->{'__typename'} = $typename;
+                                        return $value;
+                                    });
 
-                                $deferred->then(function (&$value) use (
-                                    $typename
-                                ) {
-                                    $value->{'__typename'} = $typename;
-                                    return $value;
-                                });
-
-                                return $deferred;
-                            },
-                            $multiple)
+                                    return $deferred;
+                                },
+                                $multiple
+                            )
                         ];
                     }
 
@@ -495,57 +500,57 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
                         array_values($graphql_type_per_taxonomy),
                         self::format_name($acf_field['name'], $name_base),
                         function (&$value) use (&$graphql_type_per_taxonomy) {
-                            return $graphql_type_per_taxonomy[
-                                $value->{'__typename'}
-                            ];
+                            return $graphql_type_per_taxonomy[$value->{'__typename'}];
                         }
                     );
 
                     if (isset($type)) {
                         $config = [
                             'type' => $multiple ? ['list_of' => $type] : $type,
-                            'resolve' => self::generate_resolver(function (
-                                $term,
-                                $context
-                            ) use ($acf_field) {
-                                $term = get_term($term);
-                                $typename = $term->taxonomy;
+                            'resolve' => self::generate_resolver(
+                                function (
+                                    $term,
+                                    $context
+                                ) use ($acf_field) {
+                                    $term = get_term($term);
+                                    $typename = $term->taxonomy;
 
-                                if (
-                                    !in_array(
-                                        $typename,
-                                        \WPGraphQL::get_allowed_taxonomies()
-                                    )
-                                ) {
-                                    if (WP_DEBUG) {
-                                        trigger_error(
-                                            'WPGraphQLGutenbergAcf: Field ' .
-                                                $acf_field['key'] .
-                                                ' will not be resolved since taxonomy ' .
-                                                $typename .
-                                                ' is not shown in GraphQL.',
-                                            E_USER_NOTICE
-                                        );
+                                    if (
+                                        !in_array(
+                                            $typename,
+                                            \WPGraphQL::get_allowed_taxonomies()
+                                        )
+                                    ) {
+                                        if (WP_DEBUG) {
+                                            trigger_error(
+                                                'WPGraphQLGutenbergAcf: Field ' .
+                                                    $acf_field['key'] .
+                                                    ' will not be resolved since taxonomy ' .
+                                                    $typename .
+                                                    ' is not shown in GraphQL.',
+                                                E_USER_NOTICE
+                                            );
+                                        }
+
+                                        return null;
                                     }
 
-                                    return null;
-                                }
+                                    $deferred = \WPGraphQL\Data\DataSource::resolve_term_object(
+                                        $term->term_id,
+                                        $context
+                                    );
 
-                                $deferred = \WPGraphQL\Data\DataSource::resolve_term_object(
-                                    $term->term_id,
-                                    $context
-                                );
+                                    $deferred->then(function (&$value) use (
+                                        $typename
+                                    ) {
+                                        $value->{'__typename'} = $typename;
+                                        return $value;
+                                    });
 
-                                $deferred->then(function (&$value) use (
-                                    $typename
-                                ) {
-                                    $value->{'__typename'} = $typename;
-                                    return $value;
-                                });
-
-                                return $deferred;
-                            },
-                            $multiple)
+                                    return $deferred;
+                                },
+                                $multiple
+                            )
                         ];
                     }
 
@@ -601,7 +606,21 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
 
                     if (isset($type)) {
                         $config = [
-                            'type' => ['list_of' => ['non_null' => $type]]
+                            'type' => ['list_of' => ['non_null' => $type]],
+                            'resolve' => function (
+                                $source,
+                                $args,
+                                $context,
+                                $info
+                            ) use (&$acf_field) {
+                                $value = $source[$acf_field['name']];
+
+                                if (empty($value)) {
+                                    return [];
+                                }
+
+                                return $value;
+                            },
                         ];
                     }
 
@@ -660,9 +679,7 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
                             array_values($types_per_layout),
                             self::format_name($acf_field['name'], $name_base),
                             function (&$value) use (&$types_per_layout) {
-                                return $types_per_layout[
-                                    $this->type_registry->get_type($value['acf_fc_layout'])
-                                ];
+                                return $types_per_layout[$this->type_registry->get_type($value['acf_fc_layout'])];
                             }
                         );
 
@@ -686,7 +703,7 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
             return $config;
         }
 
-        protected function get_acf_fields_type(&$acf_fields, $name_base)
+        public function get_acf_fields_type(&$acf_fields, $name_base)
         {
             $fields = [];
 
@@ -761,20 +778,20 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
                         $data = array_merge(
                             [],
                             ...array_map(function ($field) use ($type_name) {
-                                           /**
-                                * graphql_gutenberg_acf_field_value
-                                * Filters acf field value.
-                                *
-                                * @param mixed     $value             		Value.
-                                * @param array     $field                	Acf field.
-                                * @param string    $type_name               GraphQL type name.
-                                */
+                                /**
+                                 * graphql_gutenberg_acf_field_value
+                                 * Filters acf field value.
+                                 *
+                                 * @param mixed     $value             		Value.
+                                 * @param array     $field                	Acf field.
+                                 * @param string    $type_name               GraphQL type name.
+                                 */
                                 $value = apply_filters(
-                                   'graphql_gutenberg_acf_field_value',
-                                   get_field($field['key']),
-                                   $field,
-                                   $type_name
-                               );
+                                    'graphql_gutenberg_acf_field_value',
+                                    get_field($field['key']),
+                                    $field,
+                                    $type_name
+                                );
 
                                 return [
                                     $field['name'] => $value
