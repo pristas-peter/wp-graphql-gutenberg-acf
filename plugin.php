@@ -5,15 +5,12 @@
  * Description: Enable acf blocks in WP GraphQL.
  * Author: pristas-peter
  * Author URI:
- * Version: 0.1.1
- * License: MIT
- * License URI: https://opensource.org/licenses/MIT
- *
+ * License: GPL-3
+ * License URI: https://www.gnu.org/licenses/gpl-3.0.html
  */
 
 namespace WPGraphQLGutenbergACF;
 
-use WPGraphQLGutenberg\WPGraphQLGutenberg;
 use GraphQL\Type\Definition\Type;
 use WPGraphQL\Data\DataSource;
 use GraphQL\Type\Definition\CustomScalarType;
@@ -158,7 +155,7 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
 
         public static function format_graphql_block_type_acf_name($block_name)
         {
-            return WPGraphQLGutenberg::format_graphql_block_type_name(
+            return \WPGraphQLGutenberg\Schema\Types\BlockTypes::format_block_name(
                 $block_name
             ) . 'Fields';
         }
@@ -254,6 +251,8 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
             return !empty($name) && !is_numeric($name);
         }
 
+        private $union_types_by_name = [];
+
         protected function get_maybe_union_type(
             $types,
             $type_name,
@@ -266,10 +265,25 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
             } elseif ($count === 1) {
                 return $types[0];
             } else {
+                $object_types = [];
+
+                foreach ($types as $type) {
+                    if (array_key_exists($type, $this->union_types_by_name)) {
+                        $object_types =  array_merge($object_types, $this->union_types_by_name[$type]);
+                    } else {
+                        $object_types[] = $type;
+                    }
+
+                }
+
+
                 register_graphql_union_type($type_name, [
-                    'typeNames' => $types,
+                    'typeNames' => $object_types,
                     'resolveType' => $resolve_type
                 ]);
+
+                $this->union_types_by_name[$type_name] = $types;
+
                 return $type_name;
             }
         }
