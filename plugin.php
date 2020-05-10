@@ -190,6 +190,7 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
                     }
 
                     return array_map(function ($id) use (&$context, &$resolve) {
+                        $id = $id['ID'];
                         return $resolve($id, $context);
                     }, $value);
                 } else {
@@ -754,7 +755,7 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
             $acf_fields = array_merge(
                 [],
                 ...array_map(function (&$field_group) {
-                    return acf_get_fields($field_group['ID']);
+                    return acf_get_fields($field_group['key']);
                 }, $field_groups)
             );
 
