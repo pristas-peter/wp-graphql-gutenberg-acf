@@ -3,6 +3,7 @@
 	"description": "Expose acf blocks through graphql",
 	"type": "wordpress-plugin",
 	"require": {
-		"pristas-peter/wp-graphql-gutenberg": "^0.2.0"
+		"pristas-peter/wp-graphql-gutenberg": "^0.3.0",
+		"wp-graphql/wp-graphql-acf": "^0.3.3"
 	}
 }
