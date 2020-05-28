@@ -5,6 +5,7 @@
  * Description: Enable acf blocks in WP GraphQL.
  * Author: pristas-peter
  * Author URI:
+ * Version: 0.2.1
  * License: GPL-3
  * License URI: https://www.gnu.org/licenses/gpl-3.0.html
  */
