@@ -677,7 +677,7 @@ if (!class_exists('WPGraphQLGutenbergACF')) {
                             self::format_name($acf_field['name'], $name_base),
                             function (&$value) use (&$types_per_layout) {
                                 return $types_per_layout[
-                                    $this->type_registry->get_type($value['acf_fc_layout'])
+                                    $value['acf_fc_layout']
                                 ];
                             }
                         );
