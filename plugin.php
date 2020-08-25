@@ -120,4 +120,90 @@ if (!class_exists('WPGraphQLGutenbergACF') && class_exists('WPGraphQL\ACF\Config
 	}
 }
 
-WPGraphQLGutenbergACF::instance();
+
+/**
+ * Initialize the plugin
+ *
+ * @return WPGraphQLGutenbergACF|void
+ */
+function init() {
+
+	/**
+	 * If dependencies are missing, do not initialize the code
+	 */
+	if ( false === can_load_plugin() ) {
+		// Show the admin notice
+		add_action( 'admin_init', __NAMESPACE__ . '\show_admin_notice' );
+
+		// Bail
+		return;
+	}
+
+	/**
+	 * Return the instance of WPGraphQLGutenbergACF
+	 */
+	return WPGraphQLGutenbergACF::instance();
+}
+
+add_action( 'init', '\WPGraphQLGutenbergACF\init' );
+
+
+/**
+ * Show admin notice to admins if this plugin is active but dependencies are missing
+ * are not active
+ *
+ * @return bool
+ */
+function show_admin_notice() {
+
+	/**
+	 * For users with lower capabilities, don't show the notice
+	 */
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return false;
+	}
+
+	add_action(
+		'admin_notices',
+		function() {
+			?>
+			<div class="error notice">
+				<p>WPGraphQL, Advanced Custom Fields, WPGraphQL for Advanced Custom Fields and  WPGraphQL Gutenberg must be active for "wp-graphql-gutenberg-acf" to work</p>
+			</div>
+			<?php
+		}
+	);
+}
+
+/**
+ * Check whether ACF, WPGraphQL, WPGraphQlACF and WPGraphQLGutenberg are active
+ *
+ * @return bool
+ * @since 0.3
+ */
+function can_load_plugin() {
+	// Is ACF active?
+	if ( ! class_exists( 'ACF' ) ) {
+		return false;
+	}
+	
+	// Is WPGraphQL active?
+	if ( ! class_exists( 'WPGraphQL' ) ) {
+		return false;
+	}
+	
+	// is WPGraphQLACF active?
+	if ( ! class_exists( 'WPGraphQL\ACF\ACF' ) ) {
+		print_r("WPGraphQL\ACF\ACF");
+		return false;
+	}
+	
+	// is WPGraphQLGutenberg active?
+	if ( ! class_exists( 'WPGraphQLGutenberg\WPGraphQLGutenberg' ) ) {
+		print_r("WPGraphQLGutenberg");
+		return false;
+	}
+
+
+	return true;
+}
