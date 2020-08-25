@@ -25,7 +25,7 @@ if (!defined('ABSPATH')) {
 	exit();
 }
 
-if (!class_exists('WPGraphQLGutenbergACF')) {
+if (!class_exists('WPGraphQLGutenbergACF') && class_exists('WPGraphQL\ACF\Config')) {
 	final class WPGraphQLGutenbergACF extends \WPGraphQL\ACF\Config
 	{
 		private static $instance;
