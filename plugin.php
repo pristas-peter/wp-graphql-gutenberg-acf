@@ -168,7 +168,7 @@ function show_admin_notice() {
 		function() {
 			?>
 			<div class="error notice">
-				<p>WPGraphQL, Advanced Custom Fields, WPGraphQL for Advanced Custom Fields and  WPGraphQL Gutenberg must be active for "wp-graphql-gutenberg-acf" to work</p>
+				<p><?php esc_html_e( 'WPGraphQL, Advanced Custom Fields, WPGraphQL for Advanced Custom Fields and  WPGraphQL Gutenberg must be active for "wp-graphql-gutenberg-acf" to work.', 'wp-graphql-gutenberg-acf' ); ?></p>
 			</div>
 			<?php
 		}
