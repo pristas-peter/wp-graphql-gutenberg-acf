@@ -194,13 +194,11 @@ function can_load_plugin() {
 	
 	// is WPGraphQLACF active?
 	if ( ! class_exists( 'WPGraphQL\ACF\ACF' ) ) {
-		print_r("WPGraphQL\ACF\ACF");
 		return false;
 	}
 	
 	// is WPGraphQLGutenberg active?
 	if ( ! class_exists( 'WPGraphQLGutenberg\WPGraphQLGutenberg' ) ) {
-		print_r("WPGraphQLGutenberg");
 		return false;
 	}
 
