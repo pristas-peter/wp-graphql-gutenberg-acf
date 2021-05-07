@@ -4,6 +4,6 @@
 	"type": "wordpress-plugin",
 	"require": {
 		"pristas-peter/wp-graphql-gutenberg": "^0.3.0",
-		"wp-graphql/wp-graphql-acf": "^0.3.3"
+		"wp-graphql/wp-graphql-acf": "^0.5.0"
 	}
 }
