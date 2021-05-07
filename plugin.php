@@ -139,13 +139,26 @@ function init() {
 		return;
 	}
 
-	/**
-	 * Return the instance of WPGraphQLGutenbergACF
-	 */
-	return WPGraphQLGutenbergACF::instance();
+	add_filter(
+			'graphql_acf_get_root_id',
+			function ( $id, $root ) {
+				return WPGraphQLGutenbergACF::instance()->get_root_id( $id, $root );
+			},
+			10,
+			2
+	);
+
+	add_filter(
+			'graphql_gutenberg_block_type_fields',
+			function ( $fields, $block_type, $type_registry ) {
+				return WPGraphQLGutenbergACF::instance()->block_type_fields( $fields, $block_type, $type_registry );
+			},
+			10,
+			3
+	);
 }
 
-add_action( 'init', '\WPGraphQLGutenbergACF\init' );
+add_action( 'init', '\WPGraphQLGutenbergACF\init', 100 );
 
 
 /**
@@ -186,17 +199,17 @@ function can_load_plugin() {
 	if ( ! class_exists( 'ACF' ) ) {
 		return false;
 	}
-	
+
 	// Is WPGraphQL active?
 	if ( ! class_exists( 'WPGraphQL' ) ) {
 		return false;
 	}
-	
+
 	// is WPGraphQLACF active?
 	if ( ! class_exists( 'WPGraphQL\ACF\ACF' ) ) {
 		return false;
 	}
-	
+
 	// is WPGraphQLGutenberg active?
 	if ( ! class_exists( 'WPGraphQLGutenberg\WPGraphQLGutenberg' ) ) {
 		return false;
